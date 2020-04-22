@@ -17,10 +17,9 @@
 //!
 //! - Lexiclean does not respect symlinks.
 //!
-//! - Lexiclean has only been tested with the test cases you see below. In
-//!   particular, it has not been tested with windows paths, which are very
-//!   complicated, and can contain many types of components that the author of
-//!   this crate never contemplated.
+//! - Lexiclean has only been lightly tested. In particular, it has not been
+//!   tested with windows paths, which are very complicated, and can contain
+//!   many types of components that the author of this crate never contemplated.
 //!
 //!   Additional test cases and bug fixes are most welcome!
 use std::path::{Component, Path, PathBuf};

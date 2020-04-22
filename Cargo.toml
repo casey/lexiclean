@@ -1,9 +1,10 @@
 [package]
 name        = "lexiclean"
-version     = "0.0.0"
+version     = "0.0.1"
 description = "Lexically clean paths"
 license     = "CC0-1.0"
 authors     = ["Casey Rodarmor <casey@rodarmor.com>"]
 edition     = "2018"
 readme      = "README.md"
 homepage    = "https://github.com/casey/lexiclean"
+repository  = "https://github.com/casey/lexiclean"

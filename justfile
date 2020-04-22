@@ -8,3 +8,10 @@ test:
 
 fmt:
 	cargo +nightly fmt --all
+
+clippy:
+	cargo clippy --all
+
+publish: test clippy
+	cargo publish
+	git push github
