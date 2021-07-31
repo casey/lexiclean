@@ -112,7 +112,7 @@ mod tests {
   }
 
   #[test]
-  fn parent_dir_after_root_are_removed() {
+  fn parent_dir_after_root_is_removed() {
     case("/..", "/");
   }
 
