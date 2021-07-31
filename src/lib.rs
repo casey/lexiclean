@@ -44,7 +44,7 @@ impl Lexiclean for &Path {
           Some(ParentDir) | None => components.push(component),
           Some(CurDir) | Some(RootDir) | Some(Prefix(_)) => {}
         },
-        RootDir | Prefix(_) | Normal(_) => components.push(component),
+        Normal(_) | Prefix(_) | RootDir => components.push(component),
       }
     }
 
