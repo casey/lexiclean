@@ -17,10 +17,6 @@
 //!
 //! - Lexiclean does not respect symlinks.
 //!
-//! - Lexiclean has only been lightly tested. In particular, it has not been
-//!   tested with windows paths, which are very complicated, and can contain
-//!   many types of components that the author of this crate never contemplated.
-//!
 //!   Additional test cases and bug fixes are most welcome!
 use std::path::{Component, Path, PathBuf};
 
@@ -30,26 +26,25 @@ pub trait Lexiclean {
 
 impl Lexiclean for &Path {
   fn lexiclean(self) -> PathBuf {
+    use Component::*;
+
     if self.components().count() <= 1 {
       return self.to_owned();
     }
 
     let mut components = Vec::new();
 
-    for component in self
-      .components()
-      .filter(|component| component != &Component::CurDir)
-    {
-      if component == Component::ParentDir {
-        match components.last() {
-          Some(Component::Normal(_)) => {
+    for component in self.components() {
+      match component {
+        CurDir => {}
+        ParentDir => match components.last() {
+          Some(Normal(_)) => {
             components.pop();
           }
-          Some(Component::ParentDir) | None => components.push(component),
-          _ => {}
-        }
-      } else {
-        components.push(component);
+          Some(ParentDir) | None => components.push(component),
+          Some(CurDir) | Some(RootDir) | Some(Prefix(_)) => {}
+        },
+        Normal(_) | Prefix(_) | RootDir => components.push(component),
       }
     }
 
@@ -61,32 +56,104 @@ impl Lexiclean for &Path {
 mod tests {
   use super::*;
 
-  #[test]
-  #[rustfmt::skip]
-  fn simple() {
-    fn case(path: &str, want: &str) {
-      assert_eq!(Path::new(path).lexiclean(), Path::new(want));
-    }
+  #[track_caller]
+  fn case(path: &str, want: &str) {
+    assert_eq!(Path::new(path).lexiclean(), Path::new(want));
+  }
 
-    case("",                       "");
-    case(".",                      ".");
-    case("..",                     "..");
-    case("../../../",              "../../..");
-    case("./",                     ".");
-    case("./..",                   "..");
-    case("./../.",                 "..");
-    case("./././.",                ".");
-    case("/." ,                    "/");
-    case("/..",                    "/");
-    case("/../../../../../../../", "/");
-    case("/././",                  "/");
-    case("//foo/bar//baz",         "/foo/bar/baz");
-    case("/foo",                   "/foo");
-    case("/foo/../bar",            "/bar");
-    case("/foo/./bar/.",           "/foo/bar");
-    case("/foo/bar/..",            "/foo");
-    case("bar//baz",               "bar/baz");
-    case("foo",                    "foo");
-    case("foo/./bar",              "foo/bar");
+  #[test]
+  fn empty_path_is_preserved() {
+    case("", "");
+  }
+
+  #[test]
+  fn single_current_dir_is_preserved() {
+    case(".", ".");
+  }
+
+  #[test]
+  fn leading_parent_dir_is_preserved() {
+    case("..", "..");
+  }
+
+  #[test]
+  fn multiple_parent_dirs_are_preserved() {
+    case("../../..", "../../..");
+  }
+
+  #[test]
+  fn trailing_slash_is_removed() {
+    case("foo/", "foo");
+  }
+
+  #[test]
+  fn leading_current_dir_is_removed() {
+    case("./foo", "foo");
+  }
+
+  #[test]
+  fn trailing_parent_dir_after_current_dir_is_preserved() {
+    case("./..", "..");
+  }
+
+  #[test]
+  fn trailing_current_dir_is_removed() {
+    case("foo/.", "foo");
+  }
+
+  #[test]
+  fn intermediate_current_dir_is_removed() {
+    case("foo/./bar", "foo/bar");
+  }
+
+  #[test]
+  fn multiple_current_dirs_are_removed() {
+    case("././.", ".");
+  }
+
+  #[test]
+  fn parent_dir_after_root_is_removed() {
+    case("/..", "/");
+  }
+
+  #[test]
+  fn current_dir_after_root_is_removed() {
+    case("/.", "/");
+  }
+
+  #[test]
+  fn multiple_slashes_are_removed() {
+    case("//foo//bar//", "/foo/bar");
+  }
+
+  #[test]
+  fn normal_after_root_is_preserved() {
+    case("/foo", "/foo");
+  }
+
+  #[test]
+  fn intermediate_parent_dir_is_removed() {
+    case("/foo/../bar", "/bar");
+  }
+
+  #[test]
+  fn trailing_parent_dir_pops_normal() {
+    case("/foo/bar/..", "/foo");
+  }
+
+  #[test]
+  fn trailing_parent_dir_pops_normal_before_current() {
+    case("/foo/bar/./..", "/foo");
+  }
+
+  #[test]
+  fn normal_is_preserved() {
+    case("foo", "foo");
+  }
+
+  #[test]
+  #[cfg(windows)]
+  fn parent_dir_after_disk_is_removed() {
+    case(r"C:\..", r"C:\");
   }
 }
