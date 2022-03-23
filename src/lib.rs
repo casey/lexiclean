@@ -18,18 +18,25 @@
 //! - Lexiclean does not respect symlinks.
 //!
 //!   Additional test cases and bug fixes are most welcome!
-use std::path::{Component, Path, PathBuf};
+use std::{
+  borrow::Cow,
+  path::{Component, Path},
+};
 
-pub trait Lexiclean {
-  fn lexiclean(self) -> PathBuf;
+pub trait Lexiclean : ToOwned {
+  fn lexiclean(&self) -> Cow<'_, Self>;
 }
 
-impl Lexiclean for &Path {
-  fn lexiclean(self) -> PathBuf {
+impl Lexiclean for Path {
+  fn lexiclean(&self) -> Cow<'_, Self> {
     use Component::*;
 
     if self.components().count() <= 1 {
-      return self.to_owned();
+      return Cow::Borrowed(self);
+    }
+
+    if !self.components().any(|c| matches!(c, CurDir | ParentDir)) {
+      return Cow::Borrowed(self);
     }
 
     let mut components = Vec::new();
@@ -48,7 +55,7 @@ impl Lexiclean for &Path {
       }
     }
 
-    components.into_iter().collect()
+    Cow::Owned(components.into_iter().collect())
   }
 }
 
