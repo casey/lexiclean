@@ -23,7 +23,7 @@ use std::{
   path::{Component, Path},
 };
 
-pub trait Lexiclean : ToOwned {
+pub trait Lexiclean: ToOwned {
   fn lexiclean(&self) -> Cow<'_, Self>;
 }
 
