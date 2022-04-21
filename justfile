@@ -7,7 +7,7 @@ test:
 	cargo test --all
 
 fmt:
-	cargo +nightly fmt --all
+	cargo fmt --all
 
 clippy:
 	cargo clippy --all
