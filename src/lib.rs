@@ -4,20 +4,20 @@
 //! Lexical path cleaning simplifies paths without looking at the underlying
 //! filesystem. This means:
 //!
-//! - Normally, if `file` is a file and not a directory, the path `file/..` will
-//!   fail to resolve to. Lexiclean resolves this to `.`
+//! - if `file` is a file and not a directory, the path `file/..` will fail to
+//!   resolve. Lexiclean resolves this to `.`
 //!
 //! - `Path::canonicalize` returns `io::Result<PathBuf>`, because it must make
-//!   system calls, that might fail. Lexiclean does not make system calls, and
+//!   system calls that might fail. Lexiclean does not make system calls and
 //!   thus cannot fail.
 //!
-//! - The path returned by lexiclean will only contain components present in the
-//!   input path. This can make the resultant paths more legible for users,
+//! - The path returned by lexiclean will only contain components present in
+//!   the input path. This can make the resultant paths more legible for users,
 //!   since `foo/..` will resolve to `.`, and not `/Some/absolute/directory`.
 //!
 //! - Lexiclean does not respect symlinks.
 //!
-//!   Additional test cases and bug fixes are most welcome!
+//! Additional test cases and bug fixes are most welcome!
 use std::path::{Component, Path, PathBuf};
 
 pub trait Lexiclean {
@@ -27,10 +27,6 @@ pub trait Lexiclean {
 impl Lexiclean for &Path {
   fn lexiclean(self) -> PathBuf {
     use Component::*;
-
-    if self.components().count() <= 1 {
-      return self.to_owned();
-    }
 
     let mut components = Vec::new();
 
@@ -42,10 +38,15 @@ impl Lexiclean for &Path {
             components.pop();
           }
           Some(ParentDir) | None => components.push(component),
-          Some(CurDir) | Some(RootDir) | Some(Prefix(_)) => {}
+          Some(RootDir) | Some(Prefix(_)) => {}
+          Some(CurDir) => unreachable!(),
         },
         Normal(_) | Prefix(_) | RootDir => components.push(component),
       }
+    }
+
+    if components.is_empty() {
+      components.push(CurDir);
     }
 
     components.into_iter().collect()
@@ -62,13 +63,18 @@ mod tests {
   }
 
   #[test]
-  fn empty_path_is_preserved() {
-    case("", "");
+  fn empty_path_maps_to_current_dir() {
+    case("", ".");
   }
 
   #[test]
   fn single_current_dir_is_preserved() {
     case(".", ".");
+  }
+
+  #[test]
+  fn multiple_current_dirs_are_collapsed() {
+    case("././.", ".");
   }
 
   #[test]
@@ -149,6 +155,11 @@ mod tests {
   #[test]
   fn normal_is_preserved() {
     case("foo", "foo");
+  }
+
+  #[test]
+  fn parent_dir_after_normal_is_current() {
+    case("foo/..", ".");
   }
 
   #[test]
