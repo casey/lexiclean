@@ -63,10 +63,10 @@ jobs:
         path: target
         key: ${{ runner.os }}-cargo-build-target-${{ hashFiles('**/Cargo.lock') }}
 
-    - name: Install Stable
+    - name: Install Nightly
       uses: actions-rs/toolchain@v1
       with:
-        toolchain: stable
+        toolchain: nightly
         target: ${{matrix.target}}
         profile: minimal
         components: clippy, rustfmt
