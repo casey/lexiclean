@@ -134,6 +134,7 @@ mod tests {
   }
 
   #[test]
+  #[cfg(windows)]
   fn component_test() {
     panic!(
       "{:?}",
