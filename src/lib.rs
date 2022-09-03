@@ -134,6 +134,16 @@ mod tests {
   }
 
   #[test]
+  fn component_test() {
+    panic!(
+      "{:?}",
+      Path::new("//foo//bar//")
+        .components()
+        .collect::<Vec<Component>>()
+    )
+  }
+
+  #[test]
   fn normal_after_root_is_preserved() {
     case("/foo", "/foo");
   }
