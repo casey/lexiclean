@@ -127,6 +127,7 @@ mod tests {
     case("/.", "/");
   }
 
+  // TODO: Does this pass on Windows?
   #[test]
   fn multiple_slashes_are_removed() {
     case("//foo//bar//", "/foo/bar");
