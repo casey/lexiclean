@@ -1,16 +1,16 @@
 default: watch
 
 watch:
-	cargo watch --clear --exec 'test --all'
+	cargo watch --clear --exec 'ltest --all'
 
 test:
-	cargo test --all
+	cargo ltest --all
 
 fmt:
 	cargo fmt --all
 
 clippy:
-	cargo clippy --all
+	cargo lclippy --all
 
 publish: test clippy
 	cargo publish
