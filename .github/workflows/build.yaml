@@ -10,6 +10,9 @@ on:
     branches:
     - master
 
+env:
+  RUSTFLAGS: --deny warnings
+
 jobs:
   all:
     name: All
@@ -20,72 +23,23 @@ jobs:
         - macos-latest
         - ubuntu-latest
         - windows-latest
-        include:
-        - os: ubuntu-latest
-          target: x86_64-unknown-linux-musl
-        - os: macos-latest
-          target: x86_64-apple-darwin
-        - os: windows-latest
-          target: x86_64-pc-windows-msvc
 
-    runs-on: ${{matrix.os}}
-
-    env:
-      RUSTFLAGS: "-D warnings"
+    runs-on: ${{ matrix.os }}
 
     steps:
-    - uses: actions/checkout@v2
-      if: github.event_name == 'pull_request'
-      with:
-        ref: ${{ github.event.pull_request.head.sha }}
-        fetch-depth: 0
+    - uses: actions/checkout@v4
 
-    - uses: actions/checkout@v2
-      if: github.event_name != 'pull_request'
+    - uses: dtolnay/rust-toolchain@stable
       with:
-        fetch-depth: 0
-
-    - name: Cache cargo registry
-      uses: actions/cache@v1
-      with:
-        path: ~/.cargo/registry
-        key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
-
-    - name: Cache cargo index
-      uses: actions/cache@v1
-      with:
-        path: ~/.cargo/git
-        key: ${{ runner.os }}-cargo-index-${{ hashFiles('**/Cargo.lock') }}
-
-    - name: Cache cargo build
-      uses: actions/cache@v1
-      with:
-        path: target
-        key: ${{ runner.os }}-cargo-build-target-${{ hashFiles('**/Cargo.lock') }}
-
-    - name: Install Stable
-      uses: actions-rs/toolchain@v1
-      with:
-        toolchain: stable
-        target: ${{matrix.target}}
-        profile: minimal
         components: clippy, rustfmt
-        override: true
 
-    - name: Info
-      run: |
-        rustup --version
-        cargo --version
-        cargo clippy --version
-
-    - name: Build
-      run: cargo build --all --verbose
+    - uses: Swatinem/rust-cache@v2
 
     - name: Test
-      run: cargo test --all --verbose
+      run: cargo test --all
 
     - name: Clippy
-      run: cargo clippy --all
+      run: cargo clippy --all --all-targets
 
     - name: Check Formatting
       run: cargo fmt --all -- --check
