@@ -1,4 +1,5 @@
-# lexiclean
+lexiclean
+=========
 
 Lexically clean rust paths.
 
