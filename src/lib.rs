@@ -18,6 +18,7 @@
 //! - Lexiclean does not respect symlinks.
 //!
 //! Additional test cases and bug fixes are most welcome!
+
 use std::path::{Component, Path, PathBuf};
 
 pub trait Lexiclean {
@@ -33,15 +34,15 @@ impl Lexiclean for &Path {
     for component in self.components() {
       match component {
         CurDir => {}
+        Normal(_) | Prefix(_) | RootDir => components.push(component),
         ParentDir => match components.last() {
+          Some(CurDir) => unreachable!(),
           Some(Normal(_)) => {
             components.pop();
           }
-          Some(ParentDir) | None => components.push(component),
-          Some(RootDir) | Some(Prefix(_)) => {}
-          Some(CurDir) => unreachable!(),
+          Some(ParentDir) | Some(Prefix(_)) | None => components.push(component),
+          Some(RootDir) => {}
         },
-        Normal(_) | Prefix(_) | RootDir => components.push(component),
       }
     }
 
@@ -60,6 +61,7 @@ mod tests {
   #[track_caller]
   fn case(path: &str, want: &str) {
     assert_eq!(Path::new(path).lexiclean(), Path::new(want));
+    assert_eq!(Path::new(want).lexiclean(), Path::new(want));
   }
 
   #[test]
@@ -113,11 +115,6 @@ mod tests {
   }
 
   #[test]
-  fn multiple_current_dirs_are_removed() {
-    case("././.", ".");
-  }
-
-  #[test]
   fn parent_dir_after_root_is_removed() {
     case("/..", "/");
   }
@@ -163,8 +160,51 @@ mod tests {
   }
 
   #[test]
+  fn parent_dir_after_popped_normal_is_preserved() {
+    case("foo/../..", "..");
+  }
+
+  #[test]
+  fn parent_dir_pops_normal_after_parent_dir() {
+    case("../foo/..", "..");
+  }
+
+  #[test]
+  fn normal_after_preserved_parent_dir_is_preserved() {
+    case("foo/../../bar", "../bar");
+  }
+
+  #[test]
+  fn parent_dirs_after_root_are_removed_after_pop() {
+    case("/foo/../..", "/");
+  }
+
+  #[test]
+  fn normal_after_removed_parent_dir_is_preserved() {
+    case("/../foo", "/foo");
+  }
+
+  #[test]
   #[cfg(windows)]
   fn parent_dir_after_disk_is_removed() {
     case(r"C:\..", r"C:\");
+  }
+
+  #[test]
+  #[cfg(windows)]
+  fn parent_dir_after_bare_disk_is_preserved() {
+    case("C:..", "C:..");
+  }
+
+  #[test]
+  #[cfg(windows)]
+  fn parent_dir_pops_normal_after_bare_disk() {
+    case(r"C:foo\..", "C:");
+  }
+
+  #[test]
+  #[cfg(windows)]
+  fn parent_dir_after_unc_share_is_removed() {
+    case(r"\\foo\bar\..", r"\\foo\bar\");
   }
 }
